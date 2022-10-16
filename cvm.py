@@ -2,7 +2,7 @@ import requests, io, zipfile
 from bs4 import BeautifulSoup as bs
 from contextlib import closing as cl
 
-from utils import *
+from parser import *
 base_url = r"https://dados.cvm.gov.br/dados/CIA_ABERTA/DOC/"
 
 def list_cvm_links(url: str):
@@ -34,6 +34,19 @@ def get_file_content(doc: str, zip_filename: str, filename: str):
     path = get_file_path(doc, zip_filename)
     r = requests.get(path)
     with cl(r), zipfile.ZipFile(io.BytesIO(r.content)) as archive:
-        file = first_or_default(archive.filelist, lambda a: a.filename == filename)
+        file = next((a for a in archive.filelist if a.filename == filename), None)
         content = archive.read(file)
         return content
+
+def download_file(doc: str, year: float, statement: str, con: str = 'con'):
+    zip_filenames = list_files(doc)
+    zip_filename = next((z for z in zip_filenames if str(year) in z), None)
+    file_names = list_zip_filenames(doc, zip_filename)
+    file_name = next((f for f in file_names if f"{statement}_{con}" in f), None)
+    content = get_file_content(doc, zip_filename, file_name)
+    return content
+
+def get_data(doc: str, year: float, statement: str, con: str = 'con'):
+    content = download_file(doc, year, statement , con)
+    dataframe = dataframe_from_content(content, ';')
+    return dataframe
