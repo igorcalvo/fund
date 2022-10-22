@@ -17,8 +17,10 @@ df1 = prepare_df(df1, year, False)
 df2 = prepare_df(df2, year, True)
 
 df3 = pd.concat([df2, df1], ignore_index=True)
-# calculate_values(df3)
-print(get_dates_list(df3, '64.904.295/0001-03'))
-print(get_dates_list(df3, '00.000.000/0001-91'))
+# pd.set_option('mode.chained_assignment', None)
+# pd.options.mode.chained_assignment = None
+df3['DT_REFER2'] = df3.apply(lambda row: quarter_dates(row['DT_REFER']), axis=1)
+print(df3.head())
+df3 = calculate_values(df3)
 
-# arrumar datas
+save_xls([df3, df1, df2], ['DRE', 'DFP', 'ITR'], 'C:/Users/Igor/Desktop', 'test.xlsx')
