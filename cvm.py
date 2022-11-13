@@ -47,6 +47,6 @@ def download_file(doc: str, year: float, statement: str, con: str = 'con'):
     return content
 
 def get_data(doc: str, year: float, statement: str, con: str = 'con'):
-    content = download_file(doc, year, statement , con)
-    dataframe = dataframe_from_content(content, ';')
-    return dataframe
+    content = download_file(doc, year, statement, con)
+    str_list = list_from_content(content)
+    return str_list
