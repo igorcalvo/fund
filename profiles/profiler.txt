@@ -1,0 +1,3 @@
+cd C:\Users\Igor\Documents\Projects\Coding\Fund
+kernprof -b -l main.py
+python -m line_profiler main.py.lprof
