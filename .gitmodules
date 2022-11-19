@@ -1,0 +1,3 @@
+[submodule "ez_pandas"]
+	path = ez_pandas
+	url = https://github.com/igorcalvo/ez_pandas.git
