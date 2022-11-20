@@ -1,2 +1,6 @@
 __pycache__/
 .idea
+*.bak
+*.xlsx
+*.csv
+!xlsx/git/

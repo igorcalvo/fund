@@ -44,18 +44,18 @@ def download_zip(doc: str, year: int):
     zip_file = requests.get(path)
     return zip_file
 
-def get_dict_key(doc: str, year: int) -> str:
+def get_file_dict_key(doc: str, year: int) -> str:
     return f'{doc}_{year}'
 
 def download_zips(docs: list, years: list) -> dict:
     to_download = [(doc, year) for doc in docs for year in years]
     files = {}
     for download in to_download:
-        files.update({get_dict_key(download[0], download[1]): download_zip(download[0], download[1])})
+        files.update({get_file_dict_key(download[0], download[1]): download_zip(download[0], download[1])})
     return files
 
 def get_data(files: dict, doc: str, year: int, statement: str, con: str = 'con'):
-    zip_file = files[get_dict_key(doc, year)]
+    zip_file = files[get_file_dict_key(doc, year)]
     file_names = list_zip_filenames(zip_file)
     file_name = next((f for f in file_names if f"{statement}_{con}" in f), None)
     content = get_file_content(zip_file, file_name)

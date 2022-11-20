@@ -1,15 +1,10 @@
 from source.wrapper import *
 import ez_pandas.ez_pandas as epd
 import pandas as pd
-
-# TODO NEXT
-# DFC_MI (dfc e itr)
-# BPA
-# BPP
-# e DRE
+import time as t
 
 # TODO
-# other statements
+# get shares & ticker
 # de-para sql?
 
 # TODO REF
@@ -19,4 +14,10 @@ import pandas as pd
 # https://qr.ae/pvjhFV
 
 if __name__ == "__main__":
-    generate_dre('DRE')
+    try:
+        start = t.time()
+        # statements = ['DRE', 'DFC_MI', 'BPA', 'BPP']
+        generate_statements(statement='BPP', years_back=3, multi_core=True)
+        print(f"done after - {t.time() - start}s")
+    except Exception as e:
+        print(f"error: {e}")

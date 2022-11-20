@@ -1,15 +1,22 @@
-from .logic import *
+from .statement_logic import *
 from .date_utils import today
 
 # @profile
-def generate_dre(statement: str, years_back: int = 5):
+def generate_statements(statement: str = '', years_back: int = 5, multi_core: bool = True):
     date = today()
-    years = range(date.year, date.year - years_back, -1)
-    # years = [2021]
-    zip_files = download_zips(['ITR', 'DFP'], list(years))
-    if statement == "DRE":
-        itrs = []
-        dfps = []
+    years = list(range(date.year, date.year - years_back, -1))
+    if years_back > 2000:
+        years = [years_back]
+
+    statements = ['DRE', 'DFC_MI', 'BPA', 'BPP']
+    if statement != '':
+        statements = [statement]
+
+    zip_files = download_zips(['ITR', 'DFP'], years)
+
+    results = []
+    for statement in statements:
+        itrs, dfps = [], []
         for year in years:
             itrs.append(get_data(zip_files, 'ITR', year, statement))
             dfps.append(get_data(zip_files, 'DFP', year, statement))
@@ -19,19 +26,27 @@ def generate_dre(statement: str, years_back: int = 5):
         dfp_df = pd.concat(dfps)
 
         print(f'{statement} - transforming')
-        itr_df = prepare_df(itr_df, year, True)
-        dfp_df = prepare_df(dfp_df, year, False)
+        itr_df = prepare_df(itr_df, statement, True)
+        dfp_df = prepare_df(dfp_df, statement, False)
 
         print(f'{statement} - appending')
-        dre_df = epd.append_dfs(itr_df, dfp_df)
-        # dre_before = dre_df.copy(deep=True)
+        df = epd.append_dfs(itr_df, dfp_df)
+
+        print(f'{statement} - exporting')
+        df_before = df.copy(deep=True)
+        epd.save_csv(df_before, 'before')
 
         print(f'{statement} - calculating')
-        dre_df = calculate_values(dre_df)
+        df = calculate_values(df, statement, multi_core)
 
-    print(f'{statement} - formatting')
-    dre_df = format_for_output(dre_df)
+        print(f'{statement} - formatting')
+        df = format_for_output(df, statement)
+        results.append(df)
 
     print(f'{statement} - writing')
-    output = epd.save_sheets_xlsx([dre_df], ['DRE'], f'DRE', 'xlsx')
+    if len(statements) == 1:
+        filename = f'{statement}_{years[0]}' if len(years) == 1 else 'statement'
+    else:
+        filename = 'statements'
+    output = epd.save_sheets_xlsx(results, statements, filename, 'xlsx')
     print(f'exported - {output}')
