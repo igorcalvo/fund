@@ -1,6 +1,4 @@
 from source.wrapper import *
-import ez_pandas.ez_pandas as epd
-import pandas as pd
 import time as t
 
 # TODO
@@ -17,7 +15,7 @@ if __name__ == "__main__":
     try:
         start = t.time()
         # statements = ['DRE', 'DFC_MI', 'BPA', 'BPP']
-        generate_statements(statement='BPP', years_back=3, multi_core=True)
+        generate_statements(statement='', years_back=5, multi_core=True)
         print(f"done after - {t.time() - start}s")
     except Exception as e:
         print(f"error: {e}")
