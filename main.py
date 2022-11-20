@@ -1,5 +1,7 @@
 from cvm import *
 from logic import *
+# from ez_pandas.ez_pandas import save_sheets_xlsx, append_dfs
+import ez_pandas.ez_pandas as epd
 import pandas as pd
 
 # docs = list_folders()
@@ -15,38 +17,36 @@ import pandas as pd
 # e DRE
 
 # TODO
-# PANDAS!!
 # https://qr.ae/pvjhFV
+# https://queirozf.com/entries/pandas-dataframes-apply-examples#apply-example
 # encapsulate
 # parallel
 # more years
 # more statements
 # de-para sql?
 
-year = 2020
-statement = "DRE"
-print(f'downloading for {year} - {statement} - DFP')
-str_list1 = get_data('DFP/', year, statement)
-print(f'downloading for {year} - {statement} - ITR')
-str_list2 = get_data('ITR/', year, statement)
+# TODO REF
+# make parallel https://stackoverflow.com/a/55399775
+# Cython https://idlecoding.com/from-python-to-cython/
 
-df1 = pd.DataFrame(str_list2[1:], columns=str_list2[0])
-df2 = pd.DataFrame(str_list1[1:], columns=str_list1[0])
+if __name__ == "__main__":
+    year = 2020
+    statement = "DRE"
+    print(f'downloading for {year} - {statement} - ITR')
+    itr_df = get_data('ITR/', year, statement)
+    print(f'downloading for {year} - {statement} - DFP')
+    dfp_df = get_data('DFP/', year, statement)
 
-print(f'transforming {year} - {statement} - DFP')
-str_list1 = prepare_str_list(str_list1, year, False)
-print(f'transforming {year} - {statement} - ITR')
-str_list2 = prepare_str_list(str_list2, year, True)
+    print(f'transforming {year} - {statement} - ITR')
+    itr_df = prepare_df(itr_df, year, True)
+    print(f'transforming {year} - {statement} - DFP')
+    dfp_df = prepare_df(dfp_df, year, False)
 
-print(f'unifying {year} - {statement}')
-str_list3 = str_list1 + str_list2[1:]
+    print(f'unifying {year} - {statement}')
+    dre_df = epd.append_dfs(itr_df, dfp_df)
+    dre_before = dre_df.copy(deep=True)
 
-str_list3 = calculate_values(str_list3)
-write_csv('after.csv', str_list3)
+    dre_df = calculate_values(dre_df)
 
-# print(df3.head())
-# df3 = calculate_values(df3)
-#
-print(f'writing to excel')
-df3 = pd.DataFrame(str_list3[1:], columns=str_list3[0])
-save_xls([df3, df1, df2], ['DRE', 'DFP', 'ITR'], '', 'dre_2021.xlsx')
+    print(f'writing to excel')
+    epd.save_sheets_xlsx([dre_df, dre_before, dfp_df, itr_df], ['DRE', 'DRE_Before', 'DFP', 'ITR'], f'dre_{year}', '')
