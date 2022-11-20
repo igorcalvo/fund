@@ -1,5 +1,5 @@
 from .date_utils import *
-from .cvm import get_data
+from .cvm import get_data, download_zips
 import pandas as pd
 import ez_pandas.ez_pandas as epd
 import line_profiler
@@ -29,35 +29,51 @@ def prepare_df(df: pd.DataFrame, year: int, is_itr: bool) -> pd.DataFrame:
 
 # @profile
 def update_account_values(row, df: pd.DataFrame, year_first: bool):
-    cnpj = row['CNPJ_CIA']
-    account = row['CD_CONTA']
     ref_date = row['DT_REFER']
-    # start_date = row['DT_INI_EXERC']
 
     if get_date_month(ref_date) == 3:
         return row['VL_CONTA']
     else:
         previous_date = get_previous_date(ref_date, year_first)
-        query_value0 = df.loc[(df['CNPJ_CIA'] == cnpj) & (df['CD_CONTA'] == account) & (df['DT_REFER'] == previous_date)]
+        query_value0 = df.loc[(df['CNPJ_CIA'] == row['CNPJ_CIA']) &
+                              (df['CD_CONTA'] == row['CD_CONTA']) &
+                              (df['DT_REFER'] == previous_date)]
 
         try:
-            value0 = query_value0['VL_CONTA'].values[0] if query_value0.shape[0] != 0 else 0
+            value0 = epd.get_single_value(query_value0, 'VL_CONTA') if query_value0.shape[0] != 0 else 0
 
+            #region Remove for porformance
             if query_value0.shape[0] > 1:
                 valuex = query_value0['VL_CONTA'].values[0]
                 valuey = query_value0['VL_CONTA'].values[0]
                 if valuex != valuey:
+                    print("update_account_values: duplicate value:")
                     epd.print_df(query_value0)
                     pass
+            #endregion
 
             value = row['VL_CONTA'] - value0
             return value
         except Exception as e:
-            print(e)
+            # try:
+            #     if 'with size 0' in str(e):
+            #         return row['VL_CONTA']
+            #     else:
+            #         raise Exception(e)
+            # except Exception as e:
+            print(f"update_account_values error: {e}")
 
 def calculate_values(df: pd.DataFrame) -> pd.DataFrame:
     df['DT_REFER'] = df['DT_REFER'].apply(quarter_dates, args=[True])
     ref_df = df.copy(deep=True)
     # df['VL_CONTA2'] = df.apply(update_account_values, args=[ref_df, True], axis=1)
     df = epd.apply_parallel(df, 'VL_CONTA2', update_account_values, [ref_df, True])
+    return df
+
+def format_for_output(df: pd.DataFrame) -> pd.DataFrame:
+    df = df.drop(['VL_CONTA', 'GRUPO_DFP', 'CD_CVM'], axis="columns")
+    df = df.rename({'VL_CONTA2': 'VALOR'}, axis='columns')
+    new_column_list = ['CNPJ_CIA', 'DENOM_CIA', 'DT_REFER', 'DT_INI_EXERC', 'DT_FIM_EXERC', 'CD_CONTA', 'DS_CONTA', 'ST_CONTA_FIXA', 'VALOR']
+    df = df[new_column_list]
+    df = df.sort_values(['CNPJ_CIA', 'CD_CONTA', 'DT_REFER'])
     return df

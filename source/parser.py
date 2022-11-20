@@ -11,7 +11,7 @@ def stringio_to_csv(string_io: StringIO, separator: str, file_name: str):
     df.to_csv(file_name)
     string_io.seek(0)
 
-def df_from_content(content: bytes, separator=";"):
+def df_from_content(content: bytes, separator=';'):
     string_io = bytes_to_stringio(content)
     dataframe = read_csv(string_io, sep=separator)
     return dataframe
