@@ -1,6 +1,6 @@
 ## Prerequisites
 
-- Install [Python](https://git-scm.com/download/win)
+- Install [Python](https://www.python.org/downloads/)
 
 Test by typing ```python --version``` into command prompt or powershell
 
@@ -44,14 +44,15 @@ python main.py
 
 ```python
 if __name__ == "__main__":
-    # statements = ['DRE', 'DFC_MI', 'BPA', 'BPP']
-    generate_statements(statement='', years_back=5, multi_core=True)
+	statements = ['DRE', 'DFC_MI', 'BPA', 'BPP']
+	generate_statements(statement='', years_back=5, export_raw_data=False, multi_core=True)
 ```
 
 Parameter | Description
 --- | ---
 statement | If not specified, will default to all available statements
-year_back | Number of years to take into account. Can be set to only one year: e.g. 2021
+year_back | Number of years to take into account. Can be set to only one year e.g.: 2021
+export_raw_data | Whether or not export a xlsx with the raw data, before any processing
 multi_core | Whether or not multithreading will be enabled.
 
 ## Updating the code
