@@ -47,14 +47,14 @@ def drop_not_date(df: pd.DataFrame) -> pd.DataFrame:
 def dot_count(string: str) -> int:
     return string.count('.')
 
-def in_list(string: str, list: str) -> bool:
+def start_in_list(string: str, list: str) -> bool:
     return any([string.startswith(v) for v in list])
 
 def keep_account_levels(df: pd.DataFrame, levels: list, exceptions: list = []) -> pd.DataFrame:
     ex_df = None
     if len(exceptions) > 0:
-        df['ACCOUNT_EXCEPTION'] = df['CD_CONTA'].apply(in_list, args=[exceptions])
         ex_df = df.copy(deep=True)
+        ex_df['ACCOUNT_EXCEPTION'] = ex_df['CD_CONTA'].apply(start_in_list, args=[exceptions])
         ex_df = ex_df.loc[(ex_df['ACCOUNT_EXCEPTION'])]
         ex_df = ex_df.drop(columns=['ACCOUNT_EXCEPTION'], axis="columns")
 

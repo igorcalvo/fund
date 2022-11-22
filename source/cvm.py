@@ -2,6 +2,7 @@ from .parser import df_from_content
 import requests, io, zipfile
 from bs4 import BeautifulSoup as bs
 from contextlib import closing as cl
+from pandas import DataFrame
 
 base_url = r"https://dados.cvm.gov.br/dados/CIA_ABERTA/DOC/"
 
@@ -54,7 +55,7 @@ def download_zips(docs: list, years: list) -> dict:
         files.update({get_file_dict_key(download[0], download[1]): download_zip(download[0], download[1])})
     return files
 
-def get_data(files: dict, doc: str, year: int, statement: str, con: str = 'con'):
+def get_data(files: dict, doc: str, year: int, statement: str, con: str = 'con') -> DataFrame:
     zip_file = files[get_file_dict_key(doc, year)]
     file_names = list_zip_filenames(zip_file)
     file_name = next((f for f in file_names if f"{statement}_{con}" in f), None)

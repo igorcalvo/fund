@@ -1,4 +1,5 @@
 from .statement_logic import *
+from .company_info import *
 from .date_utils import today
 
 def generate_statements(statement: str = '', years_back: int = 5, export_raw_data: bool = False, multi_core: bool = True):
@@ -49,4 +50,26 @@ def generate_statements(statement: str = '', years_back: int = 5, export_raw_dat
     else:
         filename = f'statements_{years[0]}' if len(years) == 1 else 'statements'
     output = epd.save_sheets_xlsx(results, statements, filename, 'xlsx')
+    print(f'exported - {output}')
+
+
+def export_company_info(year: int = 0):
+    if year == 0:
+        year = today().year
+
+    files = get_fca(year)
+    comp_df, ticker_df = get_dfs(files, year)
+    comp_df_raw = comp_df.copy(deep=True)
+    ticker_df_raw = ticker_df.copy(deep=True)
+
+    print('companies - cleaning up')
+    comp_df = cleanup_company_df(comp_df)
+    ticker_df = cleanup_ticker_df(ticker_df)
+
+    print('companies - merging')
+    df = pd.merge(comp_df, ticker_df, how='left', on='CNPJ_Companhia')
+
+    print('companies - exporting')
+    output = epd.save_sheets_xlsx([df, ticker_df_raw, comp_df_raw], ['companies', 'ticker', 'info'], 'companies', 'xlsx')
+
     print(f'exported - {output}')
