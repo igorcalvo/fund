@@ -40,6 +40,3 @@ def cleanup_ticker_df(df: pd.DataFrame) -> pd.DataFrame:
 
     df = df.sort_values(['CNPJ_Companhia'])
     return df
-
-def do():
-    pass

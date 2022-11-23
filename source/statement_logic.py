@@ -47,14 +47,14 @@ def drop_not_date(df: pd.DataFrame) -> pd.DataFrame:
 def dot_count(string: str) -> int:
     return string.count('.')
 
-def start_in_list(string: str, list: str) -> bool:
+def startswith_in_list(string: str, list: str) -> bool:
     return any([string.startswith(v) for v in list])
 
 def keep_account_levels(df: pd.DataFrame, levels: list, exceptions: list = []) -> pd.DataFrame:
     ex_df = None
     if len(exceptions) > 0:
         ex_df = df.copy(deep=True)
-        ex_df['ACCOUNT_EXCEPTION'] = ex_df['CD_CONTA'].apply(start_in_list, args=[exceptions])
+        ex_df['ACCOUNT_EXCEPTION'] = ex_df['CD_CONTA'].apply(startswith_in_list, args=[exceptions])
         ex_df = ex_df.loc[(ex_df['ACCOUNT_EXCEPTION'])]
         ex_df = ex_df.drop(columns=['ACCOUNT_EXCEPTION'], axis="columns")
 
@@ -91,7 +91,37 @@ def prepare_df(df: pd.DataFrame, statement: str, is_itr: bool) -> pd.DataFrame:
     df = df.reset_index(drop=True)
     return df
 
-def update_account_values(row, df: pd.DataFrame, year_first: bool):
+def quarter_dates(row: pd.DataFrame, year_first: bool = True):
+    date_end = row['DT_FIM_EXERC']
+    date_ref = row['DT_REFER']
+
+    year = get_date_year(date_end)
+    month = int(date_ref.split('-')[1])
+
+    if month <= 3:
+        return date_string(31, 3, year, year_first)
+    elif month <= 6:
+        return date_string(30, 6, year, year_first)
+    elif month <= 9:
+        return date_string(30, 9, year, year_first)
+    else:
+        return date_string(31, 12, year, year_first)
+
+def handle_duplicate_values(query_value0: pd.DataFrame, statement: str, print_duplicates: bool) -> float:
+    value_x = query_value0['VL_CONTA'].values[0]
+    value_y = query_value0['VL_CONTA'].values[1]
+    if value_x != value_y:
+        if statement == 'DRE':
+            epd.sort(query_value0, ['DT_INI_EXERC', 'DT_FIM_EXERC'], [1, 1])
+        else:
+            epd.sort(query_value0, ['DT_FIM_EXERC'], [1])
+        value0 = epd.get_single_value(query_value0, 'VL_CONTA')
+        if print_duplicates:
+            print("\nupdate_account_values: duplicate value:")
+            epd.print_df(query_value0)
+        return value0
+
+def update_account_values(row, df: pd.DataFrame, statement: str, print_duplicates: bool, year_first: bool):
     ref_date = row['DT_REFER']
 
     if get_date_month(ref_date) == 3:
@@ -102,29 +132,23 @@ def update_account_values(row, df: pd.DataFrame, year_first: bool):
                               (df['CD_CONTA'] == row['CD_CONTA']) &
                               (df['DT_REFER'] == previous_date)]
 
-        try:
-            value0 = epd.get_single_value(query_value0, 'VL_CONTA') if query_value0.shape[0] != 0 else 0
-            #region Remove for porformance
-            if query_value0.shape[0] > 1:
-                value_x = query_value0['VL_CONTA'].values[0]
-                value_y = query_value0['VL_CONTA'].values[1]
-                if value_x != value_y:
-                    print("update_account_values: duplicate value:")
-                    epd.print_df(query_value0)
-                    pass
-            #endregion
-            value = row['VL_CONTA'] - value0
-            return value
-        except Exception as e:
-            print(f"update_account_values error: {e}")
+        value0 = epd.get_single_value(query_value0, 'VL_CONTA') if query_value0.shape[0] != 0 else 0
 
-def process_df(input_df: pd.DataFrame, column: str, function_to_apply, ref_df: pd.DataFrame, year_first: bool) -> pd.DataFrame:
+        # If duplicate values
+        if query_value0.shape[0] > 1:
+            value0 = handle_duplicate_values(query_value0, statement, print_duplicates)
+
+        value = row['VL_CONTA'] - value0
+        return value
+
+
+def process_df(input_df: pd.DataFrame, column: str, function_to_apply, ref_df: pd.DataFrame, statement: str, print_duplicates: bool, year_first: bool) -> pd.DataFrame:
     output_df = input_df.copy(deep=True)
-    arg_list = [ref_df, year_first]
+    arg_list = [ref_df, statement, print_duplicates, year_first]
     output_df[column] = output_df.apply(function_to_apply, axis=1, args=arg_list)
     return output_df
 
-def parallel_apply(df: pd.DataFrame, column: str, function_to_apply, ref_df: pd.DataFrame, year_first: bool) -> pd.DataFrame:
+def parallel_apply(df: pd.DataFrame, column: str, function_to_apply, ref_df: pd.DataFrame, statement: str, print_duplicates: bool, year_first: bool) -> pd.DataFrame:
     free_cores = 2
     cores = multiprocessing.cpu_count() - free_cores
 
@@ -133,17 +157,17 @@ def parallel_apply(df: pd.DataFrame, column: str, function_to_apply, ref_df: pd.
     ref_df_chunks = [epd.where_column_regex(ref_df, 'DT_REFER', '|'.join(y)) for y in df_chunks_years]
 
     with multiprocessing.Pool(cores) as pool:
-        full_output_df = pd.concat(pool.starmap(process_df, zip(df_chunks, repeat(column), repeat(function_to_apply), ref_df_chunks, repeat(year_first))), ignore_index=True)
+        full_output_df = pd.concat(pool.starmap(process_df, zip(df_chunks, repeat(column), repeat(function_to_apply), ref_df_chunks, repeat(statement), repeat(print_duplicates), repeat(year_first))), ignore_index=True)
     return full_output_df
 
-def calculate_values(df: pd.DataFrame, statement: str, parallel: bool = True) -> pd.DataFrame:
-    df['DT_REFER'] = df['DT_REFER'].apply(quarter_dates, args=[True])
+def calculate_values(df: pd.DataFrame, statement: str, parallel: bool = True, print_duplicates: bool = False) -> pd.DataFrame:
+    df['DT_REFER'] = df.apply(quarter_dates, args=[True], axis=1)
     df = df.sort_values(['DT_REFER'])
     ref_df = df.copy(deep=True)
     if parallel:
-        df = parallel_apply(df, 'VL_CONTA2', update_account_values, ref_df, True)
+        df = parallel_apply(df, 'VL_CONTA2', update_account_values, ref_df, statement_columns_mapping[statement], print_duplicates, True)
     else:
-        df['VL_CONTA2'] = df.apply(update_account_values, [ref_df, True], axis=1)
+        df['VL_CONTA2'] = df.apply(update_account_values, [ref_df, statement_columns_mapping[statement], print_duplicates, True], axis=1)
     return df
 
 def format_for_output(df: pd.DataFrame, statement: str) -> pd.DataFrame:

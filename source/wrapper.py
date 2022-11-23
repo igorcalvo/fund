@@ -2,7 +2,11 @@ from .statement_logic import *
 from .company_info import *
 from .date_utils import today
 
-def generate_statements(statement: str = '', years_back: int = 5, export_raw_data: bool = False, multi_core: bool = True):
+def generate_statements(statement: str = '',
+                        years_back: int = 5,
+                        export_raw_data: bool = False,
+                        multi_core: bool = True,
+                        print_duplicates: bool = False):
     date = today()
     years = list(range(date.year, date.year - years_back, -1))
     if years_back > 2000:
@@ -28,7 +32,7 @@ def generate_statements(statement: str = '', years_back: int = 5, export_raw_dat
         if export_raw_data:
             print(f'{statement} - exporting')
             df_before = epd.append_dfs(itr_df, dfp_df)
-            epd.save_xlsx(df_before, f'xlsx/{statement}_raw')
+            epd.export_xlsx(df_before, f'xlsx/{statement}_raw')
 
         print(f'{statement} - transforming')
         itr_df = prepare_df(itr_df, statement, True)
@@ -38,7 +42,7 @@ def generate_statements(statement: str = '', years_back: int = 5, export_raw_dat
         df = epd.append_dfs(itr_df, dfp_df)
 
         print(f'{statement} - calculating')
-        df = calculate_values(df, statement, multi_core)
+        df = calculate_values(df, statement, multi_core, print_duplicates)
 
         print(f'{statement} - formatting')
         df = format_for_output(df, statement)
@@ -49,7 +53,7 @@ def generate_statements(statement: str = '', years_back: int = 5, export_raw_dat
         filename = f'{statement}_{years[0]}' if len(years) == 1 else 'statement'
     else:
         filename = f'statements_{years[0]}' if len(years) == 1 else 'statements'
-    output = epd.save_sheets_xlsx(results, statements, filename, 'xlsx')
+    output = epd.export_sheets_xlsx(results, statements, filename, 'xlsx')
     print(f'exported - {output}')
 
 
@@ -70,6 +74,6 @@ def export_company_info(year: int = 0):
     df = pd.merge(comp_df, ticker_df, how='left', on='CNPJ_Companhia')
 
     print('companies - exporting')
-    output = epd.save_sheets_xlsx([df, ticker_df_raw, comp_df_raw], ['companies', 'ticker', 'info'], 'companies', 'xlsx')
+    output = epd.export_sheets_xlsx([df, ticker_df_raw, comp_df_raw], ['companies', 'ticker', 'info'], 'companies', 'xlsx')
 
     print(f'exported - {output}')

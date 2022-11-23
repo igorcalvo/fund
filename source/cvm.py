@@ -6,26 +6,26 @@ from pandas import DataFrame
 
 base_url = r"https://dados.cvm.gov.br/dados/CIA_ABERTA/DOC/"
 
-def list_cvm_links(url: str):
+def list_cvm_links(url: str) -> list:
     page = requests.get(url).text
     soup = bs(page, 'html.parser')
     links = soup.find('pre').find_all('a')
     strings = [l.text for l in links]
     return strings
 
-def list_folders(url: str = base_url):
+def list_folders(url: str = base_url) -> list:
     strings = list_cvm_links(url)
     return strings[1:]
 
-def list_files(doc: str):
+def list_files(doc: str) -> list:
     path = get_file_path(doc)
     strings = list_folders(path)
     return strings
 
-def get_file_path(doc: str, filename: str = ''):
+def get_file_path(doc: str, filename: str = '') -> str:
     return f"{base_url}{doc}/DADOS/{filename}" if len(filename) > 0 else f"{base_url}{doc}/DADOS"
 
-def list_zip_filenames(zip_file):
+def list_zip_filenames(zip_file) -> list:
     with cl(zip_file), zipfile.ZipFile(io.BytesIO(zip_file.content)) as archive:
         return [f.filename for f in archive.filelist]
 
@@ -55,10 +55,13 @@ def download_zips(docs: list, years: list) -> dict:
         files.update({get_file_dict_key(download[0], download[1]): download_zip(download[0], download[1])})
     return files
 
-def get_data(files: dict, doc: str, year: int, statement: str, con: str = 'con') -> DataFrame:
+def get_data(files: dict, doc: str, year: int, statement: str, con: str = 'con', exact_filename: str = '') -> DataFrame:
     zip_file = files[get_file_dict_key(doc, year)]
     file_names = list_zip_filenames(zip_file)
-    file_name = next((f for f in file_names if f"{statement}_{con}" in f), None)
+    file_name = next((f for f in file_names if f"{statement}_{con}" in f), None) if exact_filename == '' else f'{exact_filename}_{year}.csv'
     content = get_file_content(zip_file, file_name)
     df = df_from_content(content)
     return df
+
+def download_link(link: str):
+    return requests.get(link)
