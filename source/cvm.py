@@ -1,7 +1,6 @@
-from .parser import df_from_content
-import requests, io, zipfile
+from .parser import df_from_content, list_zip_filenames, get_file_content
+import requests
 from bs4 import BeautifulSoup as bs
-from contextlib import closing as cl
 from pandas import DataFrame
 
 base_url = r"https://dados.cvm.gov.br/dados/CIA_ABERTA/DOC/"
@@ -24,16 +23,6 @@ def list_files(doc: str) -> list:
 
 def get_file_path(doc: str, filename: str = '') -> str:
     return f"{base_url}{doc}/DADOS/{filename}" if len(filename) > 0 else f"{base_url}{doc}/DADOS"
-
-def list_zip_filenames(zip_file) -> list:
-    with cl(zip_file), zipfile.ZipFile(io.BytesIO(zip_file.content)) as archive:
-        return [f.filename for f in archive.filelist]
-
-def get_file_content(zip_file, filename: str):
-    with cl(zip_file), zipfile.ZipFile(io.BytesIO(zip_file.content)) as archive:
-        file = next((a for a in archive.filelist if a.filename == filename), None)
-        content = archive.read(file)
-        return content
 
 def get_zip_file_name(doc: str, year: int) -> str:
     return f"{doc.lower()}_cia_aberta_{year}.zip"

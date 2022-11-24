@@ -53,8 +53,8 @@ Parameter | Description
 statement | If not specified, will default to all available statements
 year_back | Number of years to take into account. Can be set to only one year e.g.: 2021
 export_raw_data | Whether or not to export a .xlsx with the raw data, before any processing
-multi_core | Whether or not multithreading will be enabled.
-print_duplicates | Whether or not to print duplicate rows when calculating delta.
+multi_core | Whether or not multithreading will be enabled
+print_duplicates | Whether or not to print duplicate rows when calculating delta
 
 ## Updating the code
 

@@ -3,4 +3,5 @@ __pycache__/
 *.bak
 *.xlsx
 *.csv
+*.xml
 !xlsx/git/

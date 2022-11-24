@@ -57,7 +57,7 @@ def generate_statements(statement: str = '',
     print(f'exported - {output}')
 
 
-def export_company_info(year: int = 0):
+def export_company_info(year: int = 0, export_xlsx: bool = True):
     if year == 0:
         year = today().year
 
@@ -73,7 +73,9 @@ def export_company_info(year: int = 0):
     print('companies - merging')
     df = pd.merge(comp_df, ticker_df, how='left', on='CNPJ_Companhia')
 
-    print('companies - exporting')
-    output = epd.export_sheets_xlsx([df, ticker_df_raw, comp_df_raw], ['companies', 'ticker', 'info'], 'companies', 'xlsx')
+    if export_xlsx:
+        print('companies - exporting')
+        output = epd.export_sheets_xlsx([df, ticker_df_raw, comp_df_raw], ['companies', 'ticker', 'info'], 'companies', 'xlsx')
+        print(f'exported - {output}')
 
-    print(f'exported - {output}')
+    return df
