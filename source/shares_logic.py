@@ -1,3 +1,5 @@
+import pandas as pd
+
 from .parser import *
 from .cvm import download_zips, get_data, download_link
 from multiprocessing import cpu_count
@@ -46,7 +48,7 @@ def shares_list_to_df(shares_values_list: list, share_names_list: list) -> DataF
     df.columns = share_names_list
     return df
 
-def get_weird_shares_df(file_names: list, zip_file, share_columns: list):
+def get_weird_shares_values(file_names: list, zip_file) -> list:
     extension = 'itr' if extensions_in_filename_list(['itr'], file_names) else 'dfp'
     weird_file_name = get_file_name(extension, file_names)
     content = get_file_content(zip_file, weird_file_name)
@@ -56,13 +58,16 @@ def get_weird_shares_df(file_names: list, zip_file, share_columns: list):
     xml_string = xml.decode("UTF-8")
     xml_fields = ['QuantidadeAcaoOrdinariaCapitalIntegralizado',
                   'QuantidadeAcaoPreferencialCapitalIntegralizado',
-                  'QuantidadeTotalAcaoCapitalIntegralizado']
+                  'QuantidadeTotalAcaoCapitalIntegralizado',
+                  'QuantidadeAcaoOrdinariaTesouraria',
+                  'QuantidadeAcaoPreferencialTesouraria',
+                  'QuantidadeTotalAcaoTesouraria']
     values = [find_in_xml(xml_string, tag)[0] for tag in xml_fields]
-    df = shares_list_to_df(values, share_columns)
-    epd.print_df(df)
-    return df
+    # df = shares_list_to_df(values, share_columns)
+    # epd.print_df(df)
+    return values
 
-def get_xlsx_shares_df(file_names: list, zip_file, share_columns: list):
+def get_xlsx_shares_values(file_names: list, zip_file) -> list:
     file_name = get_file_name('xlsx', file_names)
     content = get_file_content(zip_file, file_name)
     df = df_from_content_xlsx(content, 'Composicao Capital')
@@ -71,24 +76,41 @@ def get_xlsx_shares_df(file_names: list, zip_file, share_columns: list):
     if precision != 'Unidade' and df.shape[0] > 1:
         print(f'get_xlsx_shares_df: found Precisao "{precision}"')
     #endregion
-    epd.drop_columns(df, ['Acoes Ordinarias Tesouraria', 'Acoes Preferenciais Tesouraria', 'Total Tesouraria', 'Precisao'])
-    epd.rename_columns(df, {'Acoes Ordinarias Capital Integralizado': share_columns[0],
-                            'Acoes Preferenciais Capital Integralizado': share_columns[1],
-                            'Total Capital Integralizado': share_columns[2]})
-    epd.print_df(df)
-    return df
+    columns_to_drop = ['Precisao']
+    possible_drops = ['Ultimo Exercicio', 'Trimestre Atual']
+    for to_drop in possible_drops:
+        if to_drop in df.columns:
+            columns_to_drop.append(to_drop)
+    epd.drop_columns(df, columns_to_drop)
+    # epd.rename_columns(df, {'Acoes Ordinarias Capital Integralizado': share_columns[0],
+    #                         'Acoes Preferenciais Capital Integralizado': share_columns[1],
+    #                         'Total Capital Integralizado': share_columns[2],
+    #                         'Acoes Ordinarias Tesouraria': share_columns[3],
+    #                         'Acoes Preferenciais Tesouraria': share_columns[4],
+    #                         'Total Tesouraria': share_columns[5]})
+    # epd.print_df(df)
 
-def get_xml_shares_df(file_names: list, zip_file, share_columns: list):
+    if len(df.columns) > 6:
+        print(f"get_xlsx_shares_values: got more than 6 columns: {list(df.columns)}")
+
+    values = list(df.values[0])
+    values = [v if v is not None else '0' for v in values]
+    return values
+
+def get_xml_shares_values(file_names: list, zip_file) -> list:
     file_name = get_file_name('xml', file_names)
     xml_content = get_file_content(zip_file, file_name)
     xml_string = xml_content.decode("UTF-8")
+    # string_to_file(xml_content, 'tesouraria.xml')
     xml_fields = ['Ordinarias',
                   'Preferenciais',
                   'QtdeTotalAcoes']
-    values = [find_in_xml(xml_string, tag)[0] for tag in xml_fields]
-    df = shares_list_to_df(values, share_columns)
-    epd.print_df(df)
-    return df
+    values = [find_in_xml(xml_string, tag) for tag in xml_fields]
+    # values = [values[0][0], values[1][0], values[2][0], values[0][1], values[1][1], values[2][1]]
+    values = [values[row][col] for col in range(2) for row in range(3)]
+    # df = shares_list_to_df(values, share_columns)
+    # epd.print_df(df)
+    return values
 
 def do():
     years = [2021]
@@ -102,15 +124,27 @@ def do():
 
     df = get_dataframe(itrs, dfps, cnpjs)
     epd.print_df(df)
-    share_columns = ['ON', 'PN', 'TOTAL']
-    link = epd.get_value(df, 5, 'LINK_DOC')
-    # epd.parallel_apply_column(df, 'FILE', 'LINK_DOC', download_link, [], cpu_count())
-    zip_file = download_link(link)
-    file_names = list_zip_filenames(zip_file)
-    if extensions_in_filename_list(['itr', 'dfp'], file_names):
-        df2 = get_weird_shares_df(file_names, zip_file, share_columns)
-    elif extensions_in_filename_list(['xlsx'], file_names):
-        df2 = get_xlsx_shares_df(file_names, zip_file, share_columns)
-    elif extensions_in_filename_list(['xml'], file_names):
-        df2 = get_xml_shares_df(file_names, zip_file, share_columns)
+
+    share_columns = ['LINK_DOC', 'ON', 'PN', 'TOTAL', 'T ON', 'T PN', 'T TOTAL']
+    shares = []
+    # for index in df.index.tolist():
+    for index in [2,10,11]:
+        # epd.parallel_apply_column(df, 'FILE', 'LINK_DOC', download_link, [], cpu_count())
+        link = epd.get_value(df, index, 'LINK_DOC')
+        zip_file = download_link(link)
+        file_names = list_zip_filenames(zip_file)
+
+        if extensions_in_filename_list(['itr', 'dfp'], file_names):
+            row = get_weird_shares_values(file_names, zip_file)
+        elif extensions_in_filename_list(['xlsx'], file_names):
+            row = get_xlsx_shares_values(file_names, zip_file)
+        elif extensions_in_filename_list(['xml'], file_names):
+            row = get_xml_shares_values(file_names, zip_file)
+        row.insert(0, link)
+        shares.append(row)
+
+    df2 = pd.DataFrame(shares, columns=share_columns)
+    # epd.insert_column(df2_row, 0, 'LINK_DOC', link)
+    df = epd.join(df, df2, 'LINK_DOC', 'left')
+    epd.print_df(df)
     return None
