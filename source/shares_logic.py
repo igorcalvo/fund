@@ -12,7 +12,8 @@ def extensions_in_filename_list(extensions: list, file_names: list) -> bool:
 def get_file_name(extension: str, file_names: list):
     file_name_list = [file_name for file_name in file_names if file_name.split('.')[-1] == extension]
     if len(file_name_list) > 1:
-        print(f'get_file_name: found {len(file_name_list)} files for ext: "{extension}" in {file_names}. Returning {file_name_list[0]}')
+        if extension != 'xml':
+            print(f'get_file_name: found {len(file_name_list)} files for ext: "{extension}" in {file_names}. Returning {file_name_list[0]}')
         return file_name_list[0]
     elif len(file_name_list) == 0:
         print(f'get_file_name: no files for ext: "{extension}" in {file_names}')
@@ -55,7 +56,8 @@ def get_weird_shares_values(file_names: list, zip_file) -> list:
     file_names_from_weird = list_zip_filenames_bytes(content)
     file_name = get_filename_containing('ComposicaoCapital', file_names_from_weird)
     xml = get_file_content_bytes(content, file_name)
-    xml_string = xml.decode("UTF-8")
+    # xml_string = xml.decode("UTF-8")
+    xml_string = xml.decode("ISO-8859-1")
     xml_fields = ['QuantidadeAcaoOrdinariaCapitalIntegralizado',
                   'QuantidadeAcaoPreferencialCapitalIntegralizado',
                   'QuantidadeTotalAcaoCapitalIntegralizado',
@@ -93,7 +95,8 @@ def get_xlsx_shares_values(file_names: list, zip_file) -> list:
 def get_xml_shares_values(file_names: list, zip_file) -> list:
     file_name = get_file_name('xml', file_names)
     xml_content = get_file_content(zip_file, file_name)
-    xml_string = xml_content.decode("UTF-8")
+    # xml_string = xml_content.decode("UTF-8")
+    xml_string = xml_content.decode("ISO-8859-1")
     # string_to_file(xml_content, 'tesouraria.xml')
     xml_fields = ['Ordinarias',
                   'Preferenciais',
@@ -128,23 +131,3 @@ def get_shares_multi_core(df: DataFrame, share_columns: list) -> DataFrame:
     with Pool(cores) as pool:
         shares_df = concat(pool.starmap(get_shares_single_core, zip(df_chunks, repeat(share_columns))), ignore_index=True)
     return shares_df
-
-def do():
-    parallel = True
-    years = [2021]
-    cnpjs = [r'00.080.671/0001-00', r'00.545.378/0001-70', r'00.272.185/0001-93']
-
-    zip_files = download_zips(['ITR', 'DFP'], years)
-    itrs, dfps = [], []
-    for year in years:
-        itrs.append(get_data(zip_files, 'ITR', year, '', '', f'{"ITR".lower()}_cia_aberta'))
-        dfps.append(get_data(zip_files, 'DFP', year, '', '', f'{"DFP".lower()}_cia_aberta'))
-
-    df = get_dataframe(itrs, dfps, cnpjs)
-    epd.print_df(df)
-
-    share_columns = ['LINK_DOC', 'ON', 'PN', 'TOTAL', 'T ON', 'T PN', 'T TOTAL']
-    shares_df = get_shares_multi_core(df, share_columns) if parallel else get_shares_single_core(df, share_columns)
-    df = epd.join(df, shares_df, 'LINK_DOC', 'left')
-    epd.print_df(df)
-    return None
