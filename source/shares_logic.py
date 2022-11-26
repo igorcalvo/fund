@@ -1,9 +1,9 @@
-import pandas as pd
-
 from .parser import *
 from .cvm import download_zips, get_data, download_link
-from multiprocessing import cpu_count
-from pandas import DataFrame
+from multiprocessing import cpu_count, Pool
+from pandas import DataFrame, concat
+from numpy import array_split
+from itertools import repeat
 import ez_pandas.ez_pandas as epd
 
 def extensions_in_filename_list(extensions: list, file_names: list) -> bool:
@@ -63,32 +63,25 @@ def get_weird_shares_values(file_names: list, zip_file) -> list:
                   'QuantidadeAcaoPreferencialTesouraria',
                   'QuantidadeTotalAcaoTesouraria']
     values = [find_in_xml(xml_string, tag)[0] for tag in xml_fields]
-    # df = shares_list_to_df(values, share_columns)
-    # epd.print_df(df)
     return values
 
 def get_xlsx_shares_values(file_names: list, zip_file) -> list:
     file_name = get_file_name('xlsx', file_names)
     content = get_file_content(zip_file, file_name)
     df = df_from_content_xlsx(content, 'Composicao Capital')
+
     #region ToBeRemoved
     precision = epd.get_single_value(df, 'Precisao')
     if precision != 'Unidade' and df.shape[0] > 1:
         print(f'get_xlsx_shares_df: found Precisao "{precision}"')
     #endregion
+
     columns_to_drop = ['Precisao']
     possible_drops = ['Ultimo Exercicio', 'Trimestre Atual']
     for to_drop in possible_drops:
         if to_drop in df.columns:
             columns_to_drop.append(to_drop)
     epd.drop_columns(df, columns_to_drop)
-    # epd.rename_columns(df, {'Acoes Ordinarias Capital Integralizado': share_columns[0],
-    #                         'Acoes Preferenciais Capital Integralizado': share_columns[1],
-    #                         'Total Capital Integralizado': share_columns[2],
-    #                         'Acoes Ordinarias Tesouraria': share_columns[3],
-    #                         'Acoes Preferenciais Tesouraria': share_columns[4],
-    #                         'Total Tesouraria': share_columns[5]})
-    # epd.print_df(df)
 
     if len(df.columns) > 6:
         print(f"get_xlsx_shares_values: got more than 6 columns: {list(df.columns)}")
@@ -108,11 +101,36 @@ def get_xml_shares_values(file_names: list, zip_file) -> list:
     values = [find_in_xml(xml_string, tag) for tag in xml_fields]
     # values = [values[0][0], values[1][0], values[2][0], values[0][1], values[1][1], values[2][1]]
     values = [values[row][col] for col in range(2) for row in range(3)]
-    # df = shares_list_to_df(values, share_columns)
-    # epd.print_df(df)
     return values
 
+def get_shares_single_core(df: DataFrame, share_columns: list) -> DataFrame:
+    shares = []
+    for index in df.index.tolist():
+        index_translation = df.index.tolist()[0]
+        link = epd.get_value(df, index - index_translation, 'LINK_DOC')
+        zip_file = download_link(link)
+        file_names = list_zip_filenames(zip_file)
+
+        if extensions_in_filename_list(['itr', 'dfp'], file_names):
+            row = get_weird_shares_values(file_names, zip_file)
+        elif extensions_in_filename_list(['xlsx'], file_names):
+            row = get_xlsx_shares_values(file_names, zip_file)
+        elif extensions_in_filename_list(['xml'], file_names):
+            row = get_xml_shares_values(file_names, zip_file)
+        row.insert(0, link)
+        shares.append(row)
+    shares_df = DataFrame(shares, columns=share_columns)
+    return shares_df
+
+def get_shares_multi_core(df: DataFrame, share_columns: list) -> DataFrame:
+    cores = cpu_count() - 1
+    df_chunks = array_split(df, cores)
+    with Pool(cores) as pool:
+        shares_df = concat(pool.starmap(get_shares_single_core, zip(df_chunks, repeat(share_columns))), ignore_index=True)
+    return shares_df
+
 def do():
+    parallel = True
     years = [2021]
     cnpjs = [r'00.080.671/0001-00', r'00.545.378/0001-70', r'00.272.185/0001-93']
 
@@ -126,25 +144,7 @@ def do():
     epd.print_df(df)
 
     share_columns = ['LINK_DOC', 'ON', 'PN', 'TOTAL', 'T ON', 'T PN', 'T TOTAL']
-    shares = []
-    # for index in df.index.tolist():
-    for index in [2,10,11]:
-        # epd.parallel_apply_column(df, 'FILE', 'LINK_DOC', download_link, [], cpu_count())
-        link = epd.get_value(df, index, 'LINK_DOC')
-        zip_file = download_link(link)
-        file_names = list_zip_filenames(zip_file)
-
-        if extensions_in_filename_list(['itr', 'dfp'], file_names):
-            row = get_weird_shares_values(file_names, zip_file)
-        elif extensions_in_filename_list(['xlsx'], file_names):
-            row = get_xlsx_shares_values(file_names, zip_file)
-        elif extensions_in_filename_list(['xml'], file_names):
-            row = get_xml_shares_values(file_names, zip_file)
-        row.insert(0, link)
-        shares.append(row)
-
-    df2 = pd.DataFrame(shares, columns=share_columns)
-    # epd.insert_column(df2_row, 0, 'LINK_DOC', link)
-    df = epd.join(df, df2, 'LINK_DOC', 'left')
+    shares_df = get_shares_multi_core(df, share_columns) if parallel else get_shares_single_core(df, share_columns)
+    df = epd.join(df, shares_df, 'LINK_DOC', 'left')
     epd.print_df(df)
     return None
