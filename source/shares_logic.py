@@ -56,7 +56,6 @@ def get_weird_shares_values(file_names: list, zip_file) -> list:
     file_names_from_weird = list_zip_filenames_bytes(content)
     file_name = get_filename_containing('ComposicaoCapital', file_names_from_weird)
     xml = get_file_content_bytes(content, file_name)
-    # xml_string = xml.decode("UTF-8")
     xml_string = xml.decode("ISO-8859-1")
     xml_fields = ['QuantidadeAcaoOrdinariaCapitalIntegralizado',
                   'QuantidadeAcaoPreferencialCapitalIntegralizado',
@@ -64,7 +63,7 @@ def get_weird_shares_values(file_names: list, zip_file) -> list:
                   'QuantidadeAcaoOrdinariaTesouraria',
                   'QuantidadeAcaoPreferencialTesouraria',
                   'QuantidadeTotalAcaoTesouraria']
-    values = [find_in_xml(xml_string, tag)[0] for tag in xml_fields]
+    values = [int(find_in_xml(xml_string, tag)[0]) for tag in xml_fields]
     return values
 
 def get_xlsx_shares_values(file_names: list, zip_file) -> list:
@@ -89,21 +88,19 @@ def get_xlsx_shares_values(file_names: list, zip_file) -> list:
         print(f"get_xlsx_shares_values: got more than 6 columns: {list(df.columns)}")
 
     values = list(df.values[0])
-    values = [v if v is not None else '0' for v in values]
+    values = [int(v) if v is not None else 0 for v in values]
     return values
 
 def get_xml_shares_values(file_names: list, zip_file) -> list:
     file_name = get_file_name('xml', file_names)
     xml_content = get_file_content(zip_file, file_name)
-    # xml_string = xml_content.decode("UTF-8")
     xml_string = xml_content.decode("ISO-8859-1")
     # string_to_file(xml_content, 'tesouraria.xml')
     xml_fields = ['Ordinarias',
                   'Preferenciais',
                   'QtdeTotalAcoes']
     values = [find_in_xml(xml_string, tag) for tag in xml_fields]
-    # values = [values[0][0], values[1][0], values[2][0], values[0][1], values[1][1], values[2][1]]
-    values = [values[row][col] for col in range(2) for row in range(3)]
+    values = [int(values[row][col] if values[row][col] not in ('', None) else 0) for col in range(2) for row in range(3)]
     return values
 
 def get_shares_single_core(df: DataFrame, share_columns: list) -> DataFrame:

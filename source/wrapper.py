@@ -81,7 +81,7 @@ def export_company_info(year: int = 0, export_xlsx: bool = True):
 
     return df
 
-def get_share_values(years_back: int = 5, multi_core: bool = True):
+def get_share_values(cnpjs: list = [], years_back: int = 5, multi_core: bool = True):
     try:
         print_prefix = 'share_values'
 
@@ -89,8 +89,6 @@ def get_share_values(years_back: int = 5, multi_core: bool = True):
         years = list(range(date.year, date.year - years_back, -1))
         if years_back > 2000:
             years = [years_back]
-
-        # cnpjs = [r'00.080.671/0001-00', r'00.545.378/0001-70', r'00.272.185/0001-93']
 
         zip_files = download_zips(['ITR', 'DFP'], years)
 
@@ -101,11 +99,10 @@ def get_share_values(years_back: int = 5, multi_core: bool = True):
             dfps.append(get_data(zip_files, 'DFP', year, '', '', f'{"DFP".lower()}_cia_aberta'))
 
         print(f'{print_prefix} - transforming')
-        # df = get_dataframe(itrs, dfps, cnpjs)
-        df = get_dataframe(itrs, dfps)
-        # epd.print_df(df)
-        print(f'{print_prefix} - {len(df)} rows')
-        print(f'{print_prefix} - fetching data')
+        df = get_dataframe(itrs, dfps, cnpjs)
+        df = df[:len(df)//8]
+
+        print(f'{print_prefix} - fetching data for {len(df)} rows')
         share_columns = ['LINK_DOC', 'ON', 'PN', 'TOTAL', 'T ON', 'T PN', 'T TOTAL']
         shares_df = get_shares_multi_core(df, share_columns) if multi_core else get_shares_single_core(df, share_columns)
 
@@ -113,7 +110,7 @@ def get_share_values(years_back: int = 5, multi_core: bool = True):
         df = epd.join(df, shares_df, 'LINK_DOC', 'left')
 
         print(f'{print_prefix} - exporting')
-        output = epd.export_sheets_xlsx([df], ['shares'], 'shares', 'xlsx')
+        output = epd.export_sheets_xlsx([df], ['shares'], 'shares_perf', 'xlsx')
 
         print(f'exported - {output}')
     except Exception as e:

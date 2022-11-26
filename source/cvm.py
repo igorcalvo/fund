@@ -1,12 +1,12 @@
 from .parser import df_from_content, list_zip_filenames, get_file_content
-import requests
+from requests import get
 from bs4 import BeautifulSoup as bs
 from pandas import DataFrame
 
 base_url = r"https://dados.cvm.gov.br/dados/CIA_ABERTA/DOC/"
 
 def list_cvm_links(url: str) -> list:
-    page = requests.get(url).text
+    page = get(url).text
     soup = bs(page, 'html.parser')
     links = soup.find('pre').find_all('a')
     strings = [l.text for l in links]
@@ -31,7 +31,7 @@ def download_zip(doc: str, year: int):
     print(f"{doc} - {year} - downloading")
     zip_filename = get_zip_file_name(doc, year)
     path = get_file_path(doc, zip_filename)
-    zip_file = requests.get(path)
+    zip_file = get(path)
     return zip_file
 
 def get_file_dict_key(doc: str, year: int) -> str:
@@ -53,4 +53,7 @@ def get_data(files: dict, doc: str, year: int, statement: str, con: str = 'con',
     return df
 
 def download_link(link: str):
-    return requests.get(link)
+    # headers = {"User-Agent": "Mozilla/5.0 (X11; CrOS x86_64 12871.102.0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/81.0.4044.141 Safari/537.36"}
+    # headers = {"User-Agent": "Mozilla/5.0 (X11; U; Linux i686 (x86_64); en-GB; rv:1.9.0.1) Gecko/2008070206 Firefox/3.0.1"}
+    # return s.get(link, headers=headers, timeout=(3, None), verify=False)
+    return get(link)

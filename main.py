@@ -1,15 +1,17 @@
 from source.wrapper import *
-import time as t
+from time import time
+from sys import exc_info
+from os import path
 
 # TODO
-# get shares & ticker
-#   integrate cpfs
-#   handle exceptions
-# simplify wrapper imports
+# run without verify false and then with it
+# simplify imports
 # import/export google sheets
 # de-para sql?
 
 # TODO if better performance needed
+# requests
+#   https://stackoverflow.com/a/62599037
 # cpython .cpy
 # parallel -> year by year
 #   https://stackoverflow.com/a/55399775
@@ -20,11 +22,13 @@ import time as t
 
 if __name__ == "__main__":
     try:
-        start = t.time()
+        start = time()
         statements = ['DRE', 'DFC_MI', 'BPA', 'BPP']
         # generate_statements(statement='', years_back=5, export_raw_data=False, multi_core=True, print_duplicates=True)
         # export_company_info(year=0, export_xlsx=True)
-        get_share_values(years_back=2021, multi_core=True)
-        print(f"done after - {round(t.time() - start, 1)}s")
+        get_share_values(cnpjs=[], years_back=2021, multi_core=False)
+        print(f"done after - {round(time() - start, 1)}s")
     except Exception as e:
-        print(f"error: {e}")
+        e_type, e_obj, e_tb = exc_info()
+        e_filename = path.split(e_tb.tb_frame.f_code.co_filename)[1]
+        print(f"\n\n{e_obj} at line {e_tb.tb_lineno} of {e_filename}\n{e}")
