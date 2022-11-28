@@ -53,7 +53,4 @@ def get_data(files: dict, doc: str, year: int, statement: str, con: str = 'con',
     return df
 
 def download_link(link: str):
-    # headers = {"User-Agent": "Mozilla/5.0 (X11; CrOS x86_64 12871.102.0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/81.0.4044.141 Safari/537.36"}
-    # headers = {"User-Agent": "Mozilla/5.0 (X11; U; Linux i686 (x86_64); en-GB; rv:1.9.0.1) Gecko/2008070206 Firefox/3.0.1"}
-    # return s.get(link, headers=headers, timeout=(3, None), verify=False)
     return get(link)

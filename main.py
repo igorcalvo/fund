@@ -2,12 +2,12 @@ from source.wrapper import *
 from time import time
 from sys import exc_info
 from os import path
+from source.google_sheets import do
 
 # TODO
-# run without verify false and then with it
-# simplify imports
 # import/export google sheets
 # de-para sql?
+# simplify imports
 
 # TODO if better performance needed
 # requests
@@ -26,7 +26,8 @@ if __name__ == "__main__":
         statements = ['DRE', 'DFC_MI', 'BPA', 'BPP']
         # generate_statements(statement='', years_back=5, export_raw_data=False, multi_core=True, print_duplicates=True)
         # export_company_info(year=0, export_xlsx=True)
-        get_share_values(cnpjs=[], years_back=2021, multi_core=False)
+        # get_share_values(cnpjs=[], years_back=2021, multi_core=False)
+        do()
         print(f"done after - {round(time() - start, 1)}s")
     except Exception as e:
         e_type, e_obj, e_tb = exc_info()

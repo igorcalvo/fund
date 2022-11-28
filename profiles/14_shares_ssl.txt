@@ -1,0 +1,4 @@
+2021	df = df[:len(df)//8]
+
+857 	ssl
+803	no ssl	
