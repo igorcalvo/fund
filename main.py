@@ -6,10 +6,18 @@ from source.google_sheets import do
 
 # TODO
 # import/export google sheets
+#   fix ' before number
+#   handle offset during writing
+#   expand sheet range if necessary
+#   add range argument when reading too
+#   wrapper
 # de-para sql?
 # simplify imports
 
 # TODO if better performance needed
+# google sheets docs
+#   https://developers.google.com/sheets/api/quickstart/python
+#   https://developers.google.com/sheets/api/guides/values
 # requests
 #   https://stackoverflow.com/a/62599037
 # cpython .cpy
@@ -30,6 +38,4 @@ if __name__ == "__main__":
         do()
         print(f"done after - {round(time() - start, 1)}s")
     except Exception as e:
-        e_type, e_obj, e_tb = exc_info()
-        e_filename = path.split(e_tb.tb_frame.f_code.co_filename)[1]
-        print(f"\n\n{e_obj} at line {e_tb.tb_lineno} of {e_filename}\n{e}")
+        raise(e)
