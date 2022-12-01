@@ -3,9 +3,9 @@ from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
+from openpyxl.utils.cell import get_column_letter, column_index_from_string
 from pandas import DataFrame
-from enum import Enum
-from ez_pandas.ez_pandas import print_df
+from re import match, I
 
 class ValueInputOption():
     RAW = 'RAW'
@@ -65,24 +65,50 @@ def create_sheet_tab(sheet_id: str, sheet_name: str):
     response = request.execute()
     print(response)
 
-def write_sheet(sheet_id: str, sheet_name: str, df: DataFrame, value_input_option: str = ValueInputOption.USER_ENTERED, sheet_range_offset: tuple = ()):
+def split_cell(cell: str) -> tuple:
+    regex_match = match(r"([a-z]+)([0-9]+)", cell, I)
+    if regex_match:
+        items = regex_match.groups()
+        return items
+    else:
+        raise Exception(f'split_cell error parsing cell "{cell}": {e}')
+
+def calculate_final_cell(df: DataFrame, starting_cell: str) -> str:
+    starting_col, starting_row_index = split_cell(starting_cell)
+    starting_col_index = column_index_from_string(starting_col)
+
+    ending_row_index = int(starting_row_index) + df.shape[0]
+    ending_col_index = starting_col_index + df.shape[1] - 1
+    ending_col = get_column_letter(ending_col_index)
+
+    result = f'{ending_col}{ending_row_index}'
+    return result
+
+def write_sheet(sheet_id: str, sheet_name: str, df: DataFrame, first_cell_offset: str = ''):
     creds = authenticate()
     service = build('sheets', 'v4', credentials=creds)
     values_list = df_to_list_of_lists(df)
     body = {'values': values_list}
+    value_input_option = ValueInputOption.USER_ENTERED
+    updated_range = sheet_name if offset == '' else f'{sheet_name}!{first_cell_offset}:{calculate_final_cell(df, first_cell_offset)}'
 
-    result = 0
+    result = {}
     try:
-        result = service.spreadsheets().values().update(spreadsheetId=sheet_id, range=sheet_name, valueInputOption=value_input_option, body=body).execute()
+        result = service.spreadsheets().values().update(spreadsheetId=sheet_id, range=updated_range, valueInputOption=value_input_option, body=body).execute()
     except Exception as e:
-        if f'"Unable to parse range: {sheet_name}"' in str(e):
+        if f'"Unable to parse range: {updated_range}"' in str(e):
             create_sheet_tab(sheet_id, sheet_name)
-            result = service.spreadsheets().values().update(spreadsheetId=sheet_id, range=sheet_name, valueInputOption=value_input_option, body=body).execute()
+            result = service.spreadsheets().values().update(spreadsheetId=sheet_id, range=updated_range, valueInputOption=value_input_option, body=body).execute()
+        else:
+            raise(e)
     finally:
-        print(f"write_sheet: {result.get('updatedCells')} cells updated.")
+        if 'updatedCells' in result.keys():
+            print(f"write_sheet: {result.get('updatedCells')} cells updated.")
     return result
 
-def do():
+def test():
     sheet_id = '13Y4e7zbz6yY9KQIFZsdkegMby3ZYBDBX8UP8g107F0g'
     df = read_sheet(sheet_id, 'Sheet2', 'B3:D13')
-    write_sheet(sheet_id, 'Sheet4', df, value_input_option=ValueInputOption.RAW)
+    # many_rows = [[11] for i in range(100000)]
+    # df = DataFrame(many_rows)
+    write_sheet(sheet_id, 'Sheet6', df, 'B3')

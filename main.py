@@ -5,14 +5,9 @@ from os import path
 from source.google_sheets import do
 
 # TODO
-# import/export google sheets
-#   fix ' before number
-#   handle offset during writing
-#   expand sheet range if necessary
-#   add range argument when reading too
-#   wrapper
 # de-para sql?
 # simplify imports
+# clean up TODOs
 
 # TODO if better performance needed
 # google sheets docs
@@ -32,10 +27,9 @@ if __name__ == "__main__":
     try:
         start = time()
         statements = ['DRE', 'DFC_MI', 'BPA', 'BPP']
-        # generate_statements(statement='', years_back=5, export_raw_data=False, multi_core=True, print_duplicates=True)
+        generate_statements(statement='', years_back=5, export_raw_data=False, multi_core=True, print_duplicates=True)
         # export_company_info(year=0, export_xlsx=True)
         # get_share_values(cnpjs=[], years_back=2021, multi_core=False)
-        do()
         print(f"done after - {round(time() - start, 1)}s")
     except Exception as e:
         raise(e)
