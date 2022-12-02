@@ -1,7 +1,6 @@
 from .cvm import download_zips, get_data
 from .date_utils import today
-import ez_pandas.ez_pandas as epd
-import pandas as pd
+from pandas import DataFrame
 
 def get_fca(year: int):
     doc = 'FCA'
@@ -13,7 +12,7 @@ def get_dfs(files: dict, year: int):
     comp_df = get_data(files, 'FCA', year, 'geral', '')
     return comp_df, ticker_df
 
-def cleanup_company_df(df: pd.DataFrame) -> pd.DataFrame:
+def cleanup_company_df(df: DataFrame) -> DataFrame:
     to_drop = ['Data_Referencia', 'Versao', 'ID_Documento', 'Data_Constituicao', 'Data_Registro_CVM', 'Categoria_Registro_CVM',
                'Data_Categoria_Registro_CVM', 'Situacao_Registro_CVM', 'Data_Situacao_Registro_CVM', 'Pais_Origem', 'Pais_Custodia_Valores_Mobiliarios',
                'Situacao_Emissor', 'Data_Situacao_Emissor', 'Especie_Controle_Acionario', 'Data_Especie_Controle_Acionario',
@@ -26,7 +25,7 @@ def cleanup_company_df(df: pd.DataFrame) -> pd.DataFrame:
     df = df.sort_values(['CNPJ_Companhia'])
     return df
 
-def cleanup_ticker_df(df: pd.DataFrame) -> pd.DataFrame:
+def cleanup_ticker_df(df: DataFrame) -> DataFrame:
     to_drop = ['Data_Referencia', 'Versao', 'ID_Documento', 'Classe_Acao_Preferencial', 'Sigla_Entidade_Administradora',
                'Entidade_Administradora', 'Data_Inicio_Negociacao', 'Data_Fim_Negociacao', 'Segmento', 'Data_Inicio_Listagem', 'Data_Fim_Listagem']
     df = df.drop(to_drop, axis="columns")

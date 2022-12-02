@@ -1,10 +1,10 @@
-from .parser import *
+from ez_pandas.ez_pandas import append_df_list, append_dfs, drop_columns, sort, redefine_index, drop_columns, get_single_value, get_value
+from .parser import find_in_xml, get_file_content_bytes, string_to_file, list_zip_filenames_bytes, get_file_content, list_zip_filenames, df_from_content_xlsx
 from .cvm import download_zips, get_data, download_link
-from multiprocessing import cpu_count, Pool
 from pandas import DataFrame, concat
 from numpy import array_split
 from itertools import repeat
-import ez_pandas.ez_pandas as epd
+from multiprocessing import cpu_count, Pool
 
 def extensions_in_filename_list(extensions: list, file_names: list) -> bool:
     return any([file_name for file_name in file_names if file_name.split('.')[-1] in extensions])
@@ -33,15 +33,15 @@ def get_filename_containing(file_name: str, file_names: list):
         return file_name_list[0]
 
 def get_dataframe(itrs: list, dfps: list, cnpjs: list = []) -> DataFrame:
-    itr_df = epd.append_df_list(itrs)
-    dfp_df = epd.append_df_list(dfps)
-    df = epd.append_dfs(itr_df, dfp_df)
+    itr_df = append_df_list(itrs)
+    dfp_df = append_df_list(dfps)
+    df = append_dfs(itr_df, dfp_df)
     if len(cnpjs) > 0:
-        df = epd.where_column_regex(df, 'CNPJ_CIA', '|'.join(cnpjs))
+        df = where_column_regex(df, 'CNPJ_CIA', '|'.join(cnpjs))
     df = df.groupby(['CNPJ_CIA', 'DT_REFER'], as_index=False).max()
-    epd.drop_columns(df, ['ID_DOC', 'DT_RECEB', 'CD_CVM'])
-    epd.sort(df, ['CNPJ_CIA', 'DT_REFER'], [1, 1])
-    epd.redefine_index(df)
+    drop_columns(df, ['ID_DOC', 'DT_RECEB', 'CD_CVM'])
+    sort(df, ['CNPJ_CIA', 'DT_REFER'], [1, 1])
+    redefine_index(df)
     return df
 
 def shares_list_to_df(shares_values_list: list, share_names_list: list) -> DataFrame:
@@ -72,7 +72,7 @@ def get_xlsx_shares_values(file_names: list, zip_file) -> list:
     df = df_from_content_xlsx(content, 'Composicao Capital')
 
     #region ToBeRemoved
-    precision = epd.get_single_value(df, 'Precisao')
+    precision = get_single_value(df, 'Precisao')
     if precision != 'Unidade' and df.shape[0] > 1:
         print(f'get_xlsx_shares_df: found Precisao "{precision}"')
     #endregion
@@ -82,7 +82,7 @@ def get_xlsx_shares_values(file_names: list, zip_file) -> list:
     for to_drop in possible_drops:
         if to_drop in df.columns:
             columns_to_drop.append(to_drop)
-    epd.drop_columns(df, columns_to_drop)
+    drop_columns(df, columns_to_drop)
 
     if len(df.columns) > 6:
         print(f"get_xlsx_shares_values: got more than 6 columns: {list(df.columns)}")
@@ -107,7 +107,7 @@ def get_shares_single_core(df: DataFrame, share_columns: list) -> DataFrame:
     shares = []
     for index in df.index.tolist():
         index_translation = df.index.tolist()[0]
-        link = epd.get_value(df, index - index_translation, 'LINK_DOC')
+        link = get_value(df, index - index_translation, 'LINK_DOC')
         zip_file = download_link(link)
         file_names = list_zip_filenames(zip_file)
 

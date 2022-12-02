@@ -1,0 +1,9 @@
+requests
+  https://stackoverflow.com/a/62599037
+cpython .cpy
+parallel -> year by year
+  https://stackoverflow.com/a/55399775
+  https://queirozf.com/entries/pandas-dataframes-apply-examples#apply-function-in-parallel
+Cython
+  https://idlecoding.com/from-python-to-cython/
+  https://qr.ae/pvjhFV

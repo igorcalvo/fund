@@ -1,8 +1,11 @@
 beautifulsoup4==4.11.1
-ipython==8.6.0
+google_api_python_client==2.68.0
+google_auth_oauthlib==0.7.1
+ipython==8.7.0
 line_profiler==4.0.0
 numpy==1.22.3
 openpyxl==3.0.10
 pandas==1.5.1
 pandas_profiling==3.4.0
+protobuf==4.21.10
 requests==2.27.1
