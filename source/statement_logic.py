@@ -4,7 +4,6 @@ from pandas import DataFrame, concat
 from numpy import array_split
 from itertools import repeat
 from multiprocessing import cpu_count, Pool
-# @profile
 
 statement_columns_mapping = {
     "DRE": "DRE",

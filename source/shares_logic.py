@@ -6,6 +6,8 @@ from numpy import array_split
 from itertools import repeat
 from multiprocessing import cpu_count, Pool
 
+enconding = "ISO-8859-1"
+
 def extensions_in_filename_list(extensions: list, file_names: list) -> bool:
     return any([file_name for file_name in file_names if file_name.split('.')[-1] in extensions])
 
@@ -13,7 +15,7 @@ def get_file_name(extension: str, file_names: list):
     file_name_list = [file_name for file_name in file_names if file_name.split('.')[-1] == extension]
     if len(file_name_list) > 1:
         if extension != 'xml':
-            print(f'get_file_name: found {len(file_name_list)} files for ext: "{extension}" in {file_names}. Returning {file_name_list[0]}')
+            print(f'get_file_name: found {len(file_name_list)} files for ext: "{extension}" in {file_names} - returning "{file_name_list[0]}"')
         return file_name_list[0]
     elif len(file_name_list) == 0:
         print(f'get_file_name: no files for ext: "{extension}" in {file_names}')
@@ -24,7 +26,7 @@ def get_file_name(extension: str, file_names: list):
 def get_filename_containing(file_name: str, file_names: list):
     file_name_list = [filename for filename in file_names if file_name in filename]
     if len(file_name_list) > 1:
-        print(f'get_filename_containing: found duplicate files for "{file_name}" in {file_names}. Returning {file_name_list[0]}')
+        print(f'get_filename_containing: found duplicate files for "{file_name}" in {file_names} - returning "{file_name_list[0]}"')
         return file_name_list[0]
     elif len(file_name_list) == 0:
         print(f'get_filename_containing: no files matching the name "{file_name}" were found in {file_names}')
@@ -56,7 +58,7 @@ def get_weird_shares_values(file_names: list, zip_file) -> list:
     file_names_from_weird = list_zip_filenames_bytes(content)
     file_name = get_filename_containing('ComposicaoCapital', file_names_from_weird)
     xml = get_file_content_bytes(content, file_name)
-    xml_string = xml.decode("ISO-8859-1")
+    xml_string = xml.decode(enconding)
     xml_fields = ['QuantidadeAcaoOrdinariaCapitalIntegralizado',
                   'QuantidadeAcaoPreferencialCapitalIntegralizado',
                   'QuantidadeTotalAcaoCapitalIntegralizado',
@@ -66,16 +68,16 @@ def get_weird_shares_values(file_names: list, zip_file) -> list:
     values = [int(find_in_xml(xml_string, tag)[0]) for tag in xml_fields]
     return values
 
+def check_precision(df: DataFrame):
+    precision = get_single_value(df, 'Precisao')
+    if precision != 'Unidade' and df.shape[0] > 1:
+        raise Exception(f'get_xlsx_shares_df: found Precisao "{precision}"')
+
 def get_xlsx_shares_values(file_names: list, zip_file) -> list:
     file_name = get_file_name('xlsx', file_names)
     content = get_file_content(zip_file, file_name)
     df = df_from_content_xlsx(content, 'Composicao Capital')
-
-    #region ToBeRemoved
-    precision = get_single_value(df, 'Precisao')
-    if precision != 'Unidade' and df.shape[0] > 1:
-        print(f'get_xlsx_shares_df: found Precisao "{precision}"')
-    #endregion
+    check_precision(df)
 
     columns_to_drop = ['Precisao']
     possible_drops = ['Ultimo Exercicio', 'Trimestre Atual']
@@ -85,7 +87,7 @@ def get_xlsx_shares_values(file_names: list, zip_file) -> list:
     drop_columns(df, columns_to_drop)
 
     if len(df.columns) > 6:
-        print(f"get_xlsx_shares_values: got more than 6 columns: {list(df.columns)}")
+        raise Exception(f"get_xlsx_shares_values: got more than 6 columns: {list(df.columns)}")
 
     values = list(df.values[0])
     values = [int(v) if v is not None else 0 for v in values]
@@ -94,8 +96,7 @@ def get_xlsx_shares_values(file_names: list, zip_file) -> list:
 def get_xml_shares_values(file_names: list, zip_file) -> list:
     file_name = get_file_name('xml', file_names)
     xml_content = get_file_content(zip_file, file_name)
-    xml_string = xml_content.decode("ISO-8859-1")
-    # string_to_file(xml_content, 'tesouraria.xml')
+    xml_string = xml_content.decode(enconding)
     xml_fields = ['Ordinarias',
                   'Preferenciais',
                   'QtdeTotalAcoes']

@@ -8,6 +8,8 @@ from .google_sheets import read_sheet
 from pandas import DataFrame, concat, merge
 from time import time
 from datetime import timedelta
+# @profile
+
 
 def generate_statements(statement: str = '',
                         years_back: int = 5,
@@ -65,7 +67,7 @@ def generate_statements(statement: str = '',
     print(f'exported - {output}')
 
 
-def get_company_info(year: int = 0, export_xlsx: bool = True):
+def company_info(year: int = 0, export_xlsx: bool = True):
     if year == 0:
         year = today().year
 
@@ -88,7 +90,8 @@ def get_company_info(year: int = 0, export_xlsx: bool = True):
 
     return df
 
-def get_share_values(cnpjs: list = [], years_back: int = 5, multi_core: bool = True):
+
+def share_values(cnpjs: list = [], years_back: int = 5, multi_core: bool = True):
     try:
         print_prefix = 'share_values'
 
@@ -107,7 +110,6 @@ def get_share_values(cnpjs: list = [], years_back: int = 5, multi_core: bool = T
 
         print(f'{print_prefix} - transforming')
         df = get_dataframe(itrs, dfps, cnpjs)
-        df = df[:len(df)//8]
 
         print(f'{print_prefix} - fetching data for {len(df)} rows')
         share_columns = ['LINK_DOC', 'ON', 'PN', 'TOTAL', 'T ON', 'T PN', 'T TOTAL']
@@ -123,10 +125,10 @@ def get_share_values(cnpjs: list = [], years_back: int = 5, multi_core: bool = T
     except Exception as e:
         print("get_share_values", e)
 
-def get_elapsed_time_message(start: float) -> str:
+
+def elapsed_time_message(start: float) -> str:
     elapsed_seconds = round(time() - start, 0)
     delta = timedelta(seconds=elapsed_seconds)
-    string = str(delta)
-    values = string.split(':')
+    values = str(delta).split(':')
     result = f'{"0" + str(values[0]) if values[0] < 10 else values[0]} hours {values[1]} minutes {values[2]} seconds'
     return f'*** DONE *** - run time - {result}'

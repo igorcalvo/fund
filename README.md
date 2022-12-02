@@ -18,15 +18,29 @@ With git installed you can now get a copy of this code into your machine:
 1. Open either powershell or git bash and navigate to the newly created folder with: ```cd C:/path/to/new_folder```
 1. Copy the repo URL as shown in the image:
 
-![copying repo url](images/repo_url.png)
+![Copying repo url](images/repo_url.png)
 
 4. Run:
 ```bash
 git clone <url>
 ```
 
+## Google Sheets setup
 
-## Running the code
+1. Go to google project api's [credentials](https://console.cloud.google.com/apis/credentials?project=cdm-tbd)
+1. Refresh it until you don't see a blank page
+1. Click the download icon on the right for *OAuth 2.0 Client IDs*
+
+![OAuth 2.0 Download](images/google_sheets_cred_1.png)
+
+4. Download json
+
+![Download Json](images/google_sheets_cred_2.png)
+
+5. Rename it to ```credentials.json```
+6. Move it to the folder **sheets_auth** at the project's root
+
+## Running it
 
 Before running it, it's necessary to install the requirements once:
 

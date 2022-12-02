@@ -23,11 +23,6 @@ def authenticate() -> Credentials:
         if creds and creds.expired and creds.refresh_token:
             creds.refresh(Request())
         else:
-            # get credentials from: https://console.cloud.google.com/apis/credentials?project=cdm-tbd
-            # control + f5
-            # download
-            # rename
-            # paste to folder
             flow = InstalledAppFlow.from_client_secrets_file(f'{folder}/credentials.json', scopes)
             creds = flow.run_local_server(port=0)
 
@@ -105,10 +100,3 @@ def write_sheet(sheet_id: str, sheet_name: str, df: DataFrame, first_cell_offset
         if 'updatedCells' in result.keys():
             print(f"write_sheet: {result.get('updatedCells')} cells updated.")
     return result
-
-def test():
-    sheet_id = '13Y4e7zbz6yY9KQIFZsdkegMby3ZYBDBX8UP8g107F0g'
-    df = read_sheet(sheet_id, 'Sheet2', 'B3:D13')
-    # many_rows = [[11] for i in range(100000)]
-    # df = DataFrame(many_rows)
-    write_sheet(sheet_id, 'Sheet6', df, 'B3')
